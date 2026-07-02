@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI流動性ダッシュボード | Global Net Liquidity Monitor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                            950: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .glass {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-green {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
+        }
+        .glow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+        }
+        .glow-yellow {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.25);
+        }
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+        }
+        /* Custom Markdown Styles */
+        .prose h1, .prose h2, .prose h3 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose h2 {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.25rem;
+            font-size: 1.25rem;
+        }
+        .prose p {
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: #cbd5e1;
+        }
+        .prose li {
+            margin-bottom: 0.25rem;
+        }
+        .prose strong {
+            color: #f8fafc;
+            font-weight: 600;
+        }
+        .prose blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            color: #94a3b8;
+            font-style: italic;
+            margin: 1rem 0;
+            background: rgba(59, 130, 246, 0.05);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-blue-600 selection:text-white pb-12">
+    <!-- Header/Background decorations -->
+    <div class="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-blue-900/10 via-transparent to-transparent pointer-events-none"></div>
+    <div class="absolute top-[-10%] left-[20%] w-[300px] h-[300px] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none"></div>
+    <div class="absolute top-[20%] right-[10%] w-[400px] h-[400px] rounded-full bg-purple-500/5 blur-[150px] pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 relative z-10">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between pb-8 border-b border-slate-800/80 mb-8">
+            <div>
+                <div class="flex items-center space-x-3 mb-2">
+                    <span class="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-indigo-500/20 text-white">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                    </span>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight font-outfit bg-clip-text text-transparent bg-gradient-to-r from-slate-50 to-slate-300">
+                        GLOBAL LIQUIDITY INSIGHT
+                    </h1>
+                </div>
+                <p class="text-slate-400 text-sm sm:text-base font-light">
+                    FRB総資産・TGA残高・RRP残高から算出するネット・リキディティとAI投資シグナル
+                </p>
+            </div>
+            
+            <div class="mt-4 md:mt-0 flex flex-col items-start md:items-end space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-xs font-semibold text-green-400 tracking-wider uppercase bg-green-950/50 border border-green-800/50 px-2 py-0.5 rounded-full">
+                        LIVE DATA
+                    </span>
+                </div>
+                <div class="text-xs text-slate-400">
+                    最終更新: <span id="last-updated-date" class="font-mono text-slate-300">-</span>
+                </div>
+                <div class="text-[10px] text-slate-500">毎週木曜（FREDのデータ更新日）自動更新</div>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Stance Card -->
+            <div class="glass p-6 rounded-2xl flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/10">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-xs font-semibold text-blue-400 uppercase tracking-widest block mb-1">AI Stance</span>
+                        <h3 class="text-lg font-bold text-slate-200">今週の投資スタンス</h3>
+                    </div>
+                    <div class="p-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-400">
+                        <i data-lucide="compass" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="my-2">
+                    <span id="stance-badge" class="inline-flex items-center px-4 py-2 rounded-xl text-lg font-extrabold font-outfit shadow-sm border">
+                        <span id="stance-text">分析中...</span>
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-3" id="stance-summary">
+                    流動性の増減とマクロ環境を加味したAIによる推奨スタンス
+                </p>
+            </div>
+
+            <!-- Heat Level Card -->
+            <div class="glass p-6 rounded-2xl flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/10">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest block mb-1">Bubble Heat</span>
+                        <h3 class="text-lg font-bold text-slate-200">バブル過熱度</h3>
+                    </div>
+                    <div class="p-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-400">
+                        <i data-lucide="flame" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-end justify-between my-2">
+                    <div class="w-2/3 pr-4">
+                        <div class="relative pt-1">
+                            <div class="overflow-hidden h-2.5 text-xs flex rounded bg-slate-800 border border-slate-700/50">
+                                <div id="heat-progress" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-amber-500 to-orange-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-extrabold font-outfit text-amber-400 leading-none">
+                        <span id="heat-val">0</span><span class="text-sm font-medium text-slate-400 ml-0.5">%</span>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-slate-400 mt-3" id="heat-status">
+                    歴史的なネット・リキディティ水準からバブル度を測定
+                </p>
+            </div>
+
+            <!-- Crash Risk Card -->
+            <div class="glass p-6 rounded-2xl flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/10">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-xs font-semibold text-rose-400 uppercase tracking-widest block mb-1">Crash Risk</span>
+                        <h3 class="text-lg font-bold text-slate-200">暴落リスク</h3>
+                    </div>
+                    <div class="p-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-400">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-end justify-between my-2">
+                    <div class="w-2/3 pr-4">
+                        <div class="relative pt-1">
+                            <div class="overflow-hidden h-2.5 text-xs flex rounded bg-slate-800 border border-slate-700/50">
+                                <div id="risk-progress" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-rose-500 to-red-600" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-extrabold font-outfit text-rose-400 leading-none">
+                        <span id="risk-val">0</span><span class="text-sm font-medium text-slate-400 ml-0.5">%</span>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-slate-400 mt-3" id="risk-status">
+                    短期の流動性減少トレンド・枯渇リスクを総合評価
+                </p>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Section (Grid: Left Chart, Right Detailed Analytics) -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left: Chart Panel -->
+            <div class="lg:col-span-2 flex flex-col space-y-6">
+                <!-- Main Chart Card -->
+                <div class="glass p-6 rounded-2xl shadow-xl flex flex-col h-[520px]">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-800/50 mb-4">
+                        <div>
+                            <h2 class="text-lg font-extrabold font-outfit text-slate-200">ネット・リキディティ推移</h2>
+                            <p class="text-xs text-slate-400">Net Liquidity = (WALCL - WTREGEN) / 1000 - RRPONTSYD (十億ドル)</p>
+                        </div>
+                        <!-- Range Selectors -->
+                        <div class="flex space-x-1 mt-2 sm:mt-0 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                            <button onclick="setChartRange(12)" class="range-btn px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-slate-100 transition-colors font-medium">3ヶ月</button>
+                            <button onclick="setChartRange(26)" class="range-btn px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-slate-100 transition-colors font-medium">6ヶ月</button>
+                            <button onclick="setChartRange(52)" class="range-btn px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-slate-100 transition-colors font-medium">1年</button>
+                            <button onclick="setChartRange(156)" class="range-btn px-2.5 py-1 text-xs rounded-md text-slate-100 bg-slate-800 font-semibold border border-slate-700/50 transition-all">3年</button>
+                            <button onclick="setChartRange('all')" class="range-btn px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-slate-100 transition-colors font-medium">すべて</button>
+                        </div>
+                    </div>
+                    <div class="flex-grow relative">
+                        <canvas id="liquidityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Detailed Financial Indicators Table/Details -->
+                <div class="glass p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center space-x-2">
+                        <i data-lucide="table" class="w-4 h-4 text-blue-400"></i>
+                        <span>最新指標の内訳と変化率</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="text-xs text-slate-400 uppercase bg-slate-900/40 border-b border-slate-800">
+                                <tr>
+                                    <th scope="col" class="py-3 px-4">指標名</th>
+                                    <th scope="col" class="py-3 px-4 text-right">最新値</th>
+                                    <th scope="col" class="py-3 px-4 text-right">前週比</th>
+                                    <th scope="col" class="py-3 px-4 text-right">前月比</th>
+                                    <th scope="col" class="py-3 px-4 text-right">前年比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-slate-800/50 hover:bg-slate-900/20">
+                                    <td class="py-3 px-4 font-semibold text-blue-400">ネット・リキディティ (NL)</td>
+                                    <td class="py-3 px-4 text-right font-mono font-semibold" id="table-nl">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-nl-1w">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-nl-1m">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-nl-1y">-</td>
+                                </tr>
+                                <tr class="border-b border-slate-800/50 hover:bg-slate-900/20 text-xs">
+                                    <td class="py-3 px-4 pl-8 text-slate-400">↳ WALCL (FRB資産)</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-walcl">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-walcl-1w">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-walcl-1m">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-walcl-1y">-</td>
+                                </tr>
+                                <tr class="border-b border-slate-800/50 hover:bg-slate-900/20 text-xs">
+                                    <td class="py-3 px-4 pl-8 text-slate-400">↳ WTREGEN (TGA残高)</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-tga">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-tga-1w">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-tga-1m">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-tga-1y">-</td>
+                                </tr>
+                                <tr class="border-b border-slate-800/50 hover:bg-slate-900/20 text-xs">
+                                    <td class="py-3 px-4 pl-8 text-slate-400">↳ RRPONTSYD (リバースレポ)</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-rrp">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-rrp-1w">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-rrp-1m">-</td>
+                                    <td class="py-3 px-4 text-right font-mono" id="table-rrp-1y">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: AI Analytics Panel -->
+            <div class="lg:col-span-1 flex flex-col space-y-6">
+                <!-- AI Report Box -->
+                <div class="glass p-6 rounded-2xl shadow-xl flex flex-col min-h-[600px] border border-blue-500/10">
+                    <div class="flex items-center space-x-2.5 pb-4 border-b border-slate-800/50 mb-4">
+                        <span class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-lg font-extrabold font-outfit text-slate-200">Gemini AI 分析レポート</h2>
+                            <p class="text-[10px] text-slate-500">週次データに基づくマクロ流動性評価</p>
+                        </div>
+                    </div>
+                    <!-- Report Render Area -->
+                    <div id="ai-report-content" class="prose prose-sm max-w-none flex-grow">
+                        <div class="flex flex-col items-center justify-center py-20 text-slate-500 space-y-3">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <p class="text-xs">AI分析レポートを読み込み中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-12 pt-6 border-t border-slate-900 text-center text-xs text-slate-500">
+            <p>© 2026 Global Liquidity Monitor. All rights reserved. Data sourced from FRED (St. Louis Fed) and analyzed by Gemini AI.</p>
+            <p class="mt-1">本情報に基づく投資判断はご自身の責任で行ってください。いかなる損失に対しても当方は責任を負いかねます。</p>
+        </footer>
+    </div>
+
+    <!-- Data Injection Script (GAS will overwrite the comments below) -->
+    <script>
+        // --- DATA INJECTION PLACEHOLDERS ---
+        const RAW_LIQUIDITY_DATA = /*{{DATA}}*/ [
+            // ローカルプレビュー用ダミーデータ (約1年前からのデータ)
+            {"date":"2025-07-02","walcl":7800000,"tga":720000,"rrp":450,"net_liquidity":6630.0},
+            {"date":"2025-08-06","walcl":7750000,"tga":680000,"rrp":430,"net_liquidity":6640.0},
+            {"date":"2025-09-03","walcl":7700000,"tga":750000,"rrp":400,"net_liquidity":6550.0},
+            {"date":"2025-10-01","walcl":7650000,"tga":820000,"rrp":380,"net_liquidity":6450.0},
+            {"date":"2025-11-05","walcl":7580000,"tga":700000,"rrp":350,"net_liquidity":6530.0},
+            {"date":"2025-12-03","walcl":7510000,"tga":650000,"rrp":300,"net_liquidity":6560.0},
+            {"date":"2026-01-07","walcl":7450000,"tga":750000,"rrp":280,"net_liquidity":6420.0},
+            {"date":"2026-02-04","walcl":7390000,"tga":800000,"rrp":250,"net_liquidity":6340.0},
+            {"date":"2026-03-04","walcl":7320000,"tga":680000,"rrp":200,"net_liquidity":6440.0},
+            {"date":"2026-04-01","walcl":7260000,"tga":710000,"rrp":180,"net_liquidity":6370.0},
+            {"date":"2026-05-06","walcl":7210000,"tga":740000,"rrp":150,"net_liquidity":6320.0},
+            {"date":"2026-06-03","walcl":7150000,"tga":780000,"rrp":120,"net_liquidity":6250.0},
+            {"date":"2026-06-10","walcl":7135000,"tga":790000,"rrp":115,"net_liquidity":6230.0},
+            {"date":"2026-06-17","walcl":7120000,"tga":720000,"rrp":110,"net_liquidity":6290.0},
+            {"date":"2026-06-24","walcl":7110000,"tga":750000,"rrp":95,"net_liquidity":6265.0},
+            {"date":"2026-07-01","walcl":7100000,"tga":760000,"rrp":90,"net_liquidity":6250.0}
+        ];
+
+        const AI_REPORT_MARKDOWN = `/*{{REPORT}}*/\`
+\`\`\`json
+{
+  "heating_level": 68,
+  "crash_risk": 45,
+  "stance": "警戒的楽観 (Cautious Optimism)"
+}
+\`\`\`
+
+## 📊 今週のマクロ分析サマリー
+FRBの量的引き締め (QT) の継続に伴い、**WALCL (FRB資産)** は順調に減少しており、今週は 7.10 兆ドルとなりました。一方で、**TGA (財務省預金残高)** の一時的な積み上がりと **RRP (リバースレポ)** の縮小鈍化により、市場に供給されている正味の米ドル流動性を表す **ネット・リキディティ (Net Liquidity)** は前週比で微減の **6,250億ドル**（6.25兆ドル）となっています。
+
+## ⚠️ 流動性リスクとバブル度
+1. **バブル過熱度 (68%):** 歴史的なトレンド（ネット・リキディティに対する株価の位置）と比較すると、過熱感は依然として高止まりしています。流動性が減少傾向であるにもかかわらず、リスク資産市場（特にハイテク株）の上昇が継続しており、やや乖離が見られます。
+2. **暴落リスク (45%):** RRP残高が1,000億ドルを下回り、リキディティの「バッファー」が残り少なくなっています。今後TGAの急増等があれば、突発的なドルの流動性枯渇によるリスクアセットの調整（5-10%程度）が引き起こされる懸念があります。
+
+## 💡 今週の投資戦略
+* **推奨スタンス:** Cautious Optimism (警戒的楽観)
+* **キャッシュ比率:** 20〜30%程度を維持。過度なレバレッジは避け、流動性のショートに備える。
+* **注目ポイント:** 翌週の国債発行計画によるTGA残高の変動、およびRRPが完全にゼロに近接した際のSOFR（担保付き翌日物資金調達金利）の急騰リスク。
+\`;
+
+        const LAST_UPDATED = "/*{{LAST_UPDATED}}*/" || "2026-07-02 20:00:00 (JST)";
+    </script>
+
+    <!-- Dashboard Main Logic -->
+    <script>
+        let myChart = null;
+
+        // Initialize elements on load
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // Set last updated time
+            document.getElementById('last-updated-date').textContent = LAST_UPDATED;
+
+            // Parse and apply AI Analysis
+            parseAndRenderAIReport();
+
+            // Populate Table
+            populateTable();
+
+            // Render Chart
+            renderChart('all');
+        });
+
+        // Parse AI Report Markdown and JSON Metadata
+        function parseAndRenderAIReport() {
+            try {
+                let markdownContent = AI_REPORT_MARKDOWN;
+                
+                // Extract metadata JSON if exists
+                const jsonMatch = markdownContent.match(/```json\s*([\s\S]*?)\s*```/);
+                let metadata = { heating_level: 50, crash_risk: 50, stance: "不明 (Unknown)" };
+                
+                if (jsonMatch) {
+                    try {
+                        metadata = JSON.parse(jsonMatch[1]);
+                        // Remove the JSON block from rendering
+                        markdownContent = markdownContent.replace(jsonMatch[0], '');
+                    } catch (e) {
+                        console.error("Failed to parse AI report JSON metadata", e);
+                    }
+                }
+
+                // Apply metadata to UI
+                updateIndicators(metadata);
+
+                // Render Markdown content
+                const html = marked.parse(markdownContent);
+                document.getElementById('ai-report-content').innerHTML = html;
+            } catch (err) {
+                console.error("Error displaying AI report", err);
+                document.getElementById('ai-report-content').innerHTML = "<p class='text-red-400'>AI分析レポートのレンダリング中にエラーが発生しました。</p>";
+            }
+        }
+
+        // Update Gauge KPI indicators
+        function updateIndicators(meta) {
+            // 1. Stance
+            const stanceBadge = document.getElementById('stance-badge');
+            const stanceText = document.getElementById('stance-text');
+            stanceText.textContent = meta.stance;
+
+            // Set color based on stance keywords
+            const stanceLower = meta.stance.toLowerCase();
+            stanceBadge.className = "inline-flex items-center px-4 py-2 rounded-xl text-lg font-extrabold font-outfit shadow-sm border transition-all duration-500 ";
+            
+            if (stanceLower.includes('bull') || stanceLower.includes('強気') || stanceLower.includes('買') || stanceLower.includes('optimism') || stanceLower.includes('楽観')) {
+                if (stanceLower.includes('cautious') || stanceLower.includes('警戒') || stanceLower.includes('慎重')) {
+                    stanceBadge.classList.add('bg-yellow-500/10', 'text-yellow-400', 'border-yellow-500/30', 'glow-yellow');
+                    document.getElementById('stance-summary').innerHTML = "緩やかな買い継続ですが、流動性低下のシグナルが点灯しています。";
+                } else {
+                    stanceBadge.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/30', 'glow-green');
+                    document.getElementById('stance-summary').innerHTML = "流動性が健全で株価に追い風です。積極投資が推奨されます。";
+                }
+            } else if (stanceLower.includes('bear') || stanceLower.includes('弱気') || stanceLower.includes('売') || stanceLower.includes('cautious') || stanceLower.includes('警戒') || stanceLower.includes('避難') || stanceLower.includes('risk off')) {
+                stanceBadge.classList.add('bg-rose-500/10', 'text-rose-400', 'border-rose-500/30', 'glow-red');
+                document.getElementById('stance-summary').innerHTML = "流動性が急速に悪化しています。キャッシュポジション比率を上げてください。";
+            } else {
+                // Neutral
+                stanceBadge.classList.add('bg-blue-500/10', 'text-blue-400', 'border-blue-500/30', 'glow-blue');
+                document.getElementById('stance-summary').innerHTML = "方向感に欠ける環境です。急な流動性引き出しに備えて静観を推奨。";
+            }
+
+            // 2. Bubble Heat Level (0 - 100)
+            const heatVal = meta.heating_level || 0;
+            animateCounter('heat-val', heatVal);
+            document.getElementById('heat-progress').style.width = heatVal + '%';
+            
+            const heatStatus = document.getElementById('heat-status');
+            if (heatVal >= 80) {
+                heatStatus.textContent = "危険：歴史的にも極めて過熱したバブル相場水準です。";
+                heatStatus.className = "text-xs mt-3 text-red-400 font-medium";
+            } else if (heatVal >= 60) {
+                heatStatus.textContent = "警告：流動性供給に対してリスク資産価格が高止まり。";
+                heatStatus.className = "text-xs mt-3 text-yellow-400 font-medium";
+            } else {
+                heatStatus.textContent = "適正：流動性とアセットバリュエーションは均衡しています。";
+                heatStatus.className = "text-xs mt-3 text-slate-400";
+            }
+
+            // 3. Crash Risk (0 - 100)
+            const riskVal = meta.crash_risk || 0;
+            animateCounter('risk-val', riskVal);
+            document.getElementById('risk-progress').style.width = riskVal + '%';
+            
+            const riskStatus = document.getElementById('risk-status');
+            if (riskVal >= 70) {
+                riskStatus.textContent = "高リスク：流動性が急減しており、急落への警戒が必要です。";
+                riskStatus.className = "text-xs mt-3 text-red-400 font-medium";
+            } else if (riskVal >= 40) {
+                riskStatus.textContent = "中リスク：流動性のバッファーが徐々に減少しています。";
+                riskStatus.className = "text-xs mt-3 text-yellow-400 font-medium";
+            } else {
+                riskStatus.textContent = "低リスク：流動性の吸収・急激な減少懸念は低いです。";
+                riskStatus.className = "text-xs mt-3 text-slate-400";
+            }
+        }
+
+        // Animate counter logic
+        function animateCounter(id, target) {
+            const el = document.getElementById(id);
+            let current = 0;
+            const step = Math.ceil(target / 30);
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    el.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    el.textContent = current;
+                }
+            }, 20);
+        }
+
+        // Populate Table with latest data and calculations
+        function populateTable() {
+            if (RAW_LIQUIDITY_DATA.length === 0) return;
+            
+            const latest = RAW_LIQUIDITY_DATA[RAW_LIQUIDITY_DATA.length - 1];
+            
+            // Format functions
+            const toBillions = (val) => val.toLocaleString('en-US', { maximumFractionDigits: 1 });
+            const toMillionsAsBillions = (val) => (val / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 });
+
+            document.getElementById('table-nl').textContent = '$' + latest.net_liquidity.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' B';
+            document.getElementById('table-walcl').textContent = '$' + (latest.walcl / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' B';
+            document.getElementById('table-tga').textContent = '$' + (latest.tga / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' B';
+            document.getElementById('table-rrp').textContent = '$' + latest.rrp.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' B';
+
+            // Calculate changes
+            const calcChange = (current, past) => {
+                if (!past) return '-';
+                const pct = ((current - past) / past) * 100;
+                const sign = pct >= 0 ? '+' : '';
+                const color = pct >= 0 ? 'text-green-400' : 'text-rose-500';
+                return `<span class="${color}">${sign}${pct.toFixed(2)}%</span>`;
+            };
+
+            const calcNlChange = (current, past) => {
+                if (!past) return '-';
+                const diff = current - past;
+                const sign = diff >= 0 ? '+' : '';
+                const color = diff >= 0 ? 'text-green-400' : 'text-rose-500';
+                return `<span class="${color}">${sign}${diff.toFixed(1)} B</span>`;
+            };
+
+            const idx1w = Math.max(0, RAW_LIQUIDITY_DATA.length - 2);
+            const idx1m = Math.max(0, RAW_LIQUIDITY_DATA.length - 5); // Approx 4 weeks
+            const idx1y = Math.max(0, RAW_LIQUIDITY_DATA.length - 53); // Approx 52 weeks
+
+            const data1w = RAW_LIQUIDITY_DATA[idx1w];
+            const data1m = RAW_LIQUIDITY_DATA[idx1m];
+            const data1y = RAW_LIQUIDITY_DATA[idx1y];
+
+            document.getElementById('table-nl-1w').innerHTML = calcNlChange(latest.net_liquidity, data1w.net_liquidity);
+            document.getElementById('table-nl-1m').innerHTML = calcNlChange(latest.net_liquidity, data1m.net_liquidity);
+            document.getElementById('table-nl-1y').innerHTML = calcNlChange(latest.net_liquidity, data1y.net_liquidity);
+
+            document.getElementById('table-walcl-1w').innerHTML = calcChange(latest.walcl, data1w.walcl);
+            document.getElementById('table-walcl-1m').innerHTML = calcChange(latest.walcl, data1m.walcl);
+            document.getElementById('table-walcl-1y').innerHTML = calcChange(latest.walcl, data1y.walcl);
+
+            document.getElementById('table-tga-1w').innerHTML = calcChange(latest.tga, data1w.tga);
+            document.getElementById('table-tga-1m').innerHTML = calcChange(latest.tga, data1m.tga);
+            document.getElementById('table-tga-1y').innerHTML = calcChange(latest.tga, data1y.tga);
+
+            document.getElementById('table-rrp-1w').innerHTML = calcChange(latest.rrp, data1w.rrp);
+            document.getElementById('table-rrp-1m').innerHTML = calcChange(latest.rrp, data1m.rrp);
+            document.getElementById('table-rrp-1y').innerHTML = calcChange(latest.rrp, data1y.rrp);
+        }
+
+        // Set Chart Range UI active class and trigger redraw
+        function setChartRange(range) {
+            // Update active state of buttons
+            const buttons = document.querySelectorAll('.range-btn');
+            buttons.forEach(btn => {
+                btn.className = "range-btn px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-slate-100 transition-colors font-medium";
+            });
+
+            // Find matching button
+            event.target.className = "range-btn px-2.5 py-1 text-xs rounded-md text-slate-100 bg-slate-800 font-semibold border border-slate-700/50 transition-all";
+
+            renderChart(range);
+        }
+
+        // Render Chart.js
+        function renderChart(range) {
+            let dataToShow = [...RAW_LIQUIDITY_DATA];
+            
+            if (range !== 'all' && typeof range === 'number') {
+                dataToShow = dataToShow.slice(-range);
+            }
+
+            const dates = dataToShow.map(d => d.date);
+            const netLiquidity = dataToShow.map(d => d.net_liquidity);
+            const walcl = dataToShow.map(d => d.walcl / 1000); // convert to Billions
+            const tga = dataToShow.map(d => d.tga / 1000); // convert to Billions
+            const rrp = dataToShow.map(d => d.rrp); // already Billions
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            const ctx = document.getElementById('liquidityChart').getContext('2d');
+            
+            // Gradients
+            const nlGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            nlGradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+            nlGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'ネット・リキディティ (十億ドル)',
+                            data: netLiquidity,
+                            borderColor: '#3b82f6',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#3b82f6',
+                            pointHoverRadius: 7,
+                            pointRadius: range === 'all' || range > 100 ? 1 : 3,
+                            fill: true,
+                            backgroundColor: nlGradient,
+                            yAxisID: 'yNL',
+                            tension: 0.15
+                        },
+                        {
+                            label: 'WALCL (FRB資産: 十億ドル)',
+                            data: walcl,
+                            borderColor: '#93c5fd',
+                            borderWidth: 1.5,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            yAxisID: 'yOthers',
+                            hidden: true // Default hidden to avoid clutter
+                        },
+                        {
+                            label: 'TGA残高 (十億ドル)',
+                            data: tga,
+                            borderColor: '#f59e0b',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            yAxisID: 'yOthers',
+                            hidden: true
+                        },
+                        {
+                            label: 'RRP残高 (十億ドル)',
+                            data: rrp,
+                            borderColor: '#f43f5e',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            yAxisID: 'yOthers',
+                            hidden: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#94a3b8',
+                                font: {
+                                    family: 'Outfit',
+                                    size: 11
+                                },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#cbd5e1',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            titleFont: {
+                                family: 'Outfit',
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                family: 'Inter'
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += '$' + context.parsed.y.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' B';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.03)'
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: {
+                                    family: 'Inter',
+                                    size: 10
+                                },
+                                maxTicksLimit: 12
+                            }
+                        },
+                        yNL: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Net Liquidity (Billions USD)',
+                                color: '#3b82f6',
+                                font: {
+                                    family: 'Outfit',
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    family: 'mono',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        },
+                        yOthers: {
+                            type: 'linear',
+                            display: false, // Set to true if other datasets are turned on
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Others (Billions USD)',
+                                color: '#94a3b8',
+                                font: {
+                                    family: 'Outfit',
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false, // only want the grid lines for one axis
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    family: 'mono',
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Dynamically show/hide the secondary Y axis if any components are visible
+            myChart.options.plugins.legend.onClick = function(e, legendItem, legend) {
+                const index = legendItem.datasetIndex;
+                const ci = legend.chart;
+                if (ci.isDatasetVisible(index)) {
+                    ci.hide(index);
+                    legendItem.hidden = true;
+                } else {
+                    ci.show(index);
+                    legendItem.hidden = false;
+                }
+
+                // Check if other components (WALCL, TGA, RRP) are visible
+                const showSecondaryAxis = ci.isDatasetVisible(1) || ci.isDatasetVisible(2) || ci.isDatasetVisible(3);
+                ci.options.scales.yOthers.display = showSecondaryAxis;
+                
+                ci.update();
+            };
+        }
+    </script>
+</body>
+</html>

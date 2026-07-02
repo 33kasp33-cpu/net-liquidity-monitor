@@ -1,0 +1,18 @@
+[
+  {"date":"2025-07-02","walcl":7800000,"tga":720000,"rrp":450,"net_liquidity":6630.0},
+  {"date":"2025-08-06","walcl":7750000,"tga":680000,"rrp":430,"net_liquidity":6640.0},
+  {"date":"2025-09-03","walcl":7700000,"tga":750000,"rrp":400,"net_liquidity":6550.0},
+  {"date":"2025-10-01","walcl":7650000,"tga":820000,"rrp":380,"net_liquidity":6450.0},
+  {"date":"2025-11-05","walcl":7580000,"tga":700000,"rrp":350,"net_liquidity":6530.0},
+  {"date":"2025-12-03","walcl":7510000,"tga":650000,"rrp":300,"net_liquidity":6560.0},
+  {"date":"2026-01-07","walcl":7450000,"tga":750000,"rrp":280,"net_liquidity":6420.0},
+  {"date":"2026-02-04","walcl":7390000,"tga":800000,"rrp":250,"net_liquidity":6340.0},
+  {"date":"2026-03-04","walcl":7320000,"tga":680000,"rrp":200,"net_liquidity":6440.0},
+  {"date":"2026-04-01","walcl":7260000,"tga":710000,"rrp":180,"net_liquidity":6370.0},
+  {"date":"2026-05-06","walcl":7210000,"tga":740000,"rrp":150,"net_liquidity":6320.0},
+  {"date":"2026-06-03","walcl":7150000,"tga":780000,"rrp":120,"net_liquidity":6250.0},
+  {"date":"2026-06-10","walcl":7135000,"tga":790000,"rrp":115,"net_liquidity":6230.0},
+  {"date":"2026-06-17","walcl":7120000,"tga":720000,"rrp":110,"net_liquidity":6290.0},
+  {"date":"2026-06-24","walcl":7110000,"tga":750000,"rrp":95,"net_liquidity":6265.0},
+  {"date":"2026-07-01","walcl":7100000,"tga":760000,"rrp":90,"net_liquidity":6250.0}
+]
