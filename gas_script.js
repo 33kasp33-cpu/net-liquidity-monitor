@@ -81,9 +81,7 @@ function runLiquidityWorkflow() {
   });
   
   // 更新日時の置換
-  updatedHtml = updatedHtml.replace(/"\/\*\{\{LAST_UPDATED\}\}\*"/, function() {
-    return '"' + lastUpdated + '"';
-  });
+  updatedHtml = updatedHtml.replace("/*{{LAST_UPDATED}}*/", lastUpdated);
 
   commitFileToGitHub(
     properties.GITHUB_OWNER,
